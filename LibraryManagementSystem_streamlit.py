@@ -9,6 +9,7 @@ def local_css(file_name):
 
 # Call the function to load the CSS file
 local_css("style.css")
+
 # Connect to the SQLite database
 conn = sqlite3.connect('libraryManagementSystem.db')
 c = conn.cursor()
@@ -22,15 +23,12 @@ import streamlit as st
 
 def issue_book_form():
     st.header("Issue Book")
-    # book_title = st.text_input("Book Title:")
-    # borrower_name = st.text_input("Borrower Name:")
     
     book_options = [row[0] for row in c.execute("SELECT title FROM books WHERE status = 'Available'")]
     book_title = st.selectbox("Book Title:", book_options)
 
     borrower_options = [row[0] for row in c.execute("SELECT name FROM borrowers")]
     borrower_name = st.selectbox("Borrower Name:", borrower_options)
-
     
     issue_date = st.date_input("Issue Date:")
     due_date = st.date_input("Due Date:")
@@ -48,8 +46,23 @@ def issue_book(book_title, borrower_name, issue_date, due_date):
     c.execute("INSERT INTO BookIssueTable (id, book_id, borrower_name, issue_date, due_date) VALUES (NULL,?, ?, ?, ?)",
                    (book[0][0], borrower_name, issue_date, due_date))
     conn.commit()
-    conn.close()
+
+def return_book_form():
+    st.header("Return Book")
     
+    book_options = [row[0] for row in c.execute("SELECT title FROM books WHERE status = 'issued'")]
+    book_title = st.selectbox("Book Title:", book_options)
+
+    submit_button = st.button("Return Book")
+
+    if submit_button:
+        return_book(book_title)
+        st.success(f"{book_title} has been returned.")
+
+def return_book(book_title):
+    c.execute("UPDATE books SET status = 'Available' WHERE title = ?", (book_title,))
+    c.execute("DELETE FROM BookIssueTable WHERE book_id = (SELECT book_id FROM books WHERE title = ?)", (book_title,))
+    conn.commit()
 
 def borrower_registration():
     st.header("Borrower Registration")
@@ -67,24 +80,17 @@ def register_borrower(name, email, address):
                  (id INTEGER PRIMARY KEY, name TEXT, email TEXT, address TEXT)''')
     c.execute("INSERT INTO borrowers (id, name, email, address)VALUES (NULL, ?, ?, ?)", (name, email, address))
     conn.commit()
-    conn.close()
 
 def view_borrowers():
-    # borrowers_df = pd.read_sql_query("SELECT * FROM borrowers", conn)
-    # conn.close()
-    # st.table(borrowers_df)
     c.execute('SELECT * FROM borrowers')
     borrowers = c.fetchall()
     if not borrowers:
         st.write("No borrower found.")
     else:
         bborrowers_table = [[borrower[0], borrower[1], borrower[2],borrower[3]] for borrower in borrowers]
-        # headers = ["Name", "Email", "Address"]
         borrowers_df = pd.DataFrame(bborrowers_table)
-        # , columns=headers)
         st.write(borrowers_df.to_html(escape=False), unsafe_allow_html=True)
 
-# Define a class to represent a book
 class Book:
     def __init__(self, title, author, isbn, status):
         self.title = title
@@ -92,15 +98,11 @@ class Book:
         self.isbn = isbn
         self.status=status
 
-# Define a function to add a book to the database
 def add_book(title, author, isbn, status):
     book = Book(title, author, isbn, status)
     c.execute("INSERT INTO books VALUES (NULL, ?, ?, ?, ?)", (book.title, book.author, book.isbn, book.status))
     conn.commit()
 
-
-
-# Create a function to search for books
 def search_books(query):
     c.execute("SELECT * FROM books WHERE title LIKE ? OR author LIKE ? OR isbn LIKE ?", ('%'+query+'%', '%'+query+'%', '%'+query+'%'))
     books = c.fetchall()
@@ -112,7 +114,6 @@ def delete_book(title):
     conn.commit()
     st.success('Book deleted')
 
-# Define a function to display the books in a table
 def view_books():
     c.execute('SELECT * FROM books')
     books = c.fetchall()
@@ -124,15 +125,11 @@ def view_books():
         book_df = pd.DataFrame(book_table, columns=headers)
         st.write(book_df.to_html(escape=False), unsafe_allow_html=True)
 
-
-
-# Define a function to retrieve all books from the database
 def get_all_books():
     c.execute("SELECT * FROM books")
     books = c.fetchall()
     return books
 
-# Define a function to search for books by title or author
 def search_books(search_term):
     c.execute("SELECT * FROM books WHERE title LIKE ? OR author LIKE ?", ('%' + search_term + '%', '%' + search_term + '%'))
     matching_books = c.fetchall()
@@ -148,11 +145,11 @@ def view_borrowers_with_book():
         st.table(df)
     else:
         st.warning("No borrowers found.")
-# Define the Streamlit app
+
 def main():
     st.title("Library Management System")
 
-    menu = ["Add Book", "View Books", "Search Books",'Delete Book','Borrower Registration','View Borrowers','Issue Book']
+    menu = ["Add Book", "View Books", "Search Books",'Delete Book','Borrower Registration','View Borrowers','Issue Book','Return Book']
     choice = st.sidebar.selectbox("Select an option", menu)
 
     if choice == "Add Book":
@@ -175,10 +172,6 @@ def main():
             book_df = pd.DataFrame(book_table, columns=headers)
             st.write(book_df.to_html(escape=False), unsafe_allow_html=True)
 
-            # book_table = [[book[0], book[1], book[2]] for book in books]
-            # headers = ["Title", "Author", "ISBN"]
-            # st.table(pd.DataFrame(book_table, columns=headers).style.set_properties(**{'text-align': 'center', 'font-size': '14px', 'border': '1px solid black'}))
-
     elif choice == "Search Books":
         st.subheader("Search Books")
         
@@ -194,10 +187,6 @@ def main():
                     headers = ["ID", "Title", "Author","ISBN","Status"]
                     book_df = pd.DataFrame(book_table, columns=headers)
                     st.write(book_df.to_html(escape=False), unsafe_allow_html=True)
-
-                    # book_table = [[book[0], book[1], book[2]] for book in books]
-                    # headers = ["Title", "Author", "ISBN"]
-                    # st.table(pd.DataFrame(book_table, columns=headers).style.set_properties(**{'text-align': 'center', 'font-size': '14px', 'border': '1px solid black'}))
     
     elif choice == 'Delete Book':
         st.header("Delete Book")
@@ -211,14 +200,19 @@ def main():
                 delete_book(title)
                 st.success(f"{title} has been deleted from the library.")
             else:
-                st.warning(f"{title} not found in the library.")        
+                st.warning(f"{title} not found in the library.")  
+
     elif choice == "Borrower Registration":
         borrower_registration()
+
     elif choice == "View Borrowers":
         view_borrowers_with_book()
-        # view_borrowers()
+
     elif choice == "Issue Book":
         issue_book_form()
-    
+
+    elif choice == "Return Book":
+        return_book_form()
+
 if __name__ == "__main__":
     main()

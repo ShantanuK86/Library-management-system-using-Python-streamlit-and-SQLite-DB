@@ -1,8 +1,11 @@
+/* Global styles */
 body {
     font-family: Arial, sans-serif;
     background-color: #f0f0f0;
+    color: #333;
 }
 
+/* Sidebar styles */
 .sidebar .sidebar-content {
     background-color: #333;
     color: white;
@@ -18,14 +21,28 @@ body {
     color: white;
 }
 
+/* Button styles */
 .stButton>button {
     background-color: #007bff;
     color: white;
+    border-radius: 5px;
+    padding: 8px 20px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
 }
 
+.stButton>button:hover {
+    background-color: #0056b3;
+}
+
+/* Text input styles */
 .stTextInput>div>div>input {
     background-color: #fff;
     color: #333;
+    border-radius: 5px;
+    border: 1px solid #ccc;
+    padding: 8px 12px;
+    transition: border-color 0.3s ease;
 }
 
 .stTextInput>div>div>input:focus {
@@ -33,6 +50,7 @@ body {
     box-shadow: none;
 }
 
+/* Table styles */
 .stTable {
     border-collapse: collapse;
     width: 100%;
@@ -49,4 +67,24 @@ body {
 
 .stTable tr:hover {
     background-color: #ddd;
+}
+
+/* Success message styles */
+.stSuccess {
+    background-color: #d4edda;
+    color: #155724;
+    border: 1px solid #c3e6cb;
+    border-radius: 5px;
+    padding: 10px;
+    margin-bottom: 15px;
+}
+
+/* Warning message styles */
+.stWarning {
+    background-color: #fff3cd;
+    color: #856404;
+    border: 1px solid #ffeeba;
+    border-radius: 5px;
+    padding: 10px;
+    margin-bottom: 15px;
 }
